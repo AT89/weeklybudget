@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>$200 Weekly + $240 Gas Tracker</title>
+  <style>
+    :root { --bg:#0b0c10; --card:#14161a; --muted:#8a8f98; --text:#e7e9ee; --accent:#4ade80; --border:#23262d; }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Noto Sans, Arial}
+    .wrap{max-width:1120px;margin:20px auto;padding:0 12px}
+    h1{font-size:22px;margin:0 0 10px}
+    .grid{display:grid;gap:16px}
+    @media(min-width:1024px){ .grid{grid-template-columns:1fr 1fr} }
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column}
+    input,button{padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:#0f1115;color:var(--text)}
+    button{cursor:pointer}
+    .btn{padding:6px 10px;border-radius:10px;font-size:14px;margin-top:8px}
+    .btn.primary{background:var(--accent);color:#06250f;font-weight:600}
+    .row{display:flex;gap:8px}
+    .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+    .stat{background:#0f1115;border:1px solid var(--border);border-radius:10px;padding:8px}
+    .stat .label{color:var(--muted);font-size:11px}
+    .stat .val{font-size:16px;font-weight:600;margin-top:2px}
+    table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+    th,td{padding:6px;border-bottom:1px solid var(--border)}
+    th{color:var(--muted);text-align:left;font-weight:500}
+    .right{text-align:right}
+    .muted{color:var(--muted)}
+    .reset-btn-container{margin-top:12px;display:flex;justify-content:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>$200 Weekly + $240 Gas Tracker</h1>
+    <div class="grid">
+      <div class="card" id="weeklyCard">
+        <h2>Weekly $200</h2>
+        <div class="row">
+          <input id="w_amount" type="number" step="0.01" placeholder="$" />
+          <input id="w_note" placeholder="note" />
+          <button class="btn primary" onclick="W.addTx()">+</button>
+        </div>
+        <div class="kpi">
+          <div class="stat"><div class="label">Budget</div><div class="val" id="w_kBudget">$200</div></div>
+          <div class="stat"><div class="label">Spent</div><div class="val" id="w_kSpent">$0</div></div>
+          <div class="stat"><div class="label">Remain</div><div class="val" id="w_kRemain">$200</div></div>
+        </div>
+        <table><thead><tr><th>Date</th><th>Note</th><th class="right">Amt</th></tr></thead><tbody id="w_table"></tbody></table>
+        <div class="reset-btn-container">
+          <button class="btn" onclick="W.reset()">Reset Weekly</button>
+        </div>
+      </div>
+
+      <div class="card" id="gasCard">
+        <h2>Monthly Gas $240</h2>
+        <div class="row">
+          <input id="g_amount" type="number" step="0.01" placeholder="$" />
+          <input id="g_note" placeholder="station" />
+          <button class="btn primary" onclick="G.addTx()">+</button>
+        </div>
+        <div class="kpi">
+          <div class="stat"><div class="label">Budget</div><div class="val" id="g_kBudget">$240</div></div>
+          <div class="stat"><div class="label">Spent</div><div class="val" id="g_kSpent">$0</div></div>
+          <div class="stat"><div class="label">Remain</div><div class="val" id="g_kRemain">$240</div></div>
+        </div>
+        <table><thead><tr><th>Date</th><th>Note</th><th class="right">Amt</th></tr></thead><tbody id="g_table"></tbody></table>
+        <div class="reset-btn-container">
+          <button class="btn" onclick="G.reset()">Reset Gas</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const store={read:(k,f)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):f}catch(e){return f}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
+const money=n=>'$'+Number(n).toFixed(2);
+function today(){const d=new Date();return d.toLocaleDateString();}
+
+const W={key:'w_tx',budget:200,tx:store.read('w_tx',[]),addTx(){const a=Number(document.getElementById('w_amount').value);if(!a)return;const n=document.getElementById('w_note').value;this.tx.push({ts:Date.now(),a,n});store.write(this.key,this.tx);this.refresh();},reset(){if(confirm('Clear weekly transactions?')){this.tx=[];store.write(this.key,this.tx);this.refresh();}},compute(){const spent=this.tx.reduce((s,t)=>s+t.a,0);return {spent,remain:this.budget-spent};},refresh(){const {spent,remain}=this.compute();document.getElementById('w_kBudget').textContent=money(this.budget);document.getElementById('w_kSpent').textContent=money(spent);document.getElementById('w_kRemain').textContent=money(remain);const tbody=document.getElementById('w_table');tbody.innerHTML='';this.tx.slice().reverse().forEach(t=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${today()}</td><td class="muted">${t.n||''}</td><td class="right">${money(t.a)}</td>`;tbody.appendChild(tr);});}};
+
+const G={key:'g_tx',budget:240,tx:store.read('g_tx',[]),addTx(){const a=Number(document.getElementById('g_amount').value);if(!a)return;const n=document.getElementById('g_note').value;this.tx.push({ts:Date.now(),a,n});store.write(this.key,this.tx);this.refresh();},reset(){if(confirm('Clear monthly gas transactions?')){this.tx=[];store.write(this.key,this.tx);this.refresh();}},compute(){const spent=this.tx.reduce((s,t)=>s+t.a,0);return {spent,remain:this.budget-spent};},refresh(){const {spent,remain}=this.compute();document.getElementById('g_kBudget').textContent=money(this.budget);document.getElementById('g_kSpent').textContent=money(spent);document.getElementById('g_kRemain').textContent=money(remain);const tbody=document.getElementById('g_table');tbody.innerHTML='';this.tx.slice().reverse().forEach(t=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${today()}</td><td class="muted">${t.n||''}</td><td class="right">${money(t.a)}</td>`;tbody.appendChild(tr);});}};
+
+W.refresh();G.refresh();
+</script>
+</body>
+</html>
